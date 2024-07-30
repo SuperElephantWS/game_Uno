@@ -1,10 +1,11 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jul 16 20:37:38 2024
 
 @author: Watson
 """
+
 import random
  
 class UnoCard:
@@ -35,7 +36,7 @@ class UnoCard:
         '''str(Unocard) -> str'''
         if self.rank < 10:
             return(str(self.color) + ' ' + str(self.rank))
-        #... 10: skipUno; 11: reverseUno; 12: drawtwoUno; 13: wildUno; 14: drawfourUn
+        #... 10: skipUno; 11: reverseUno; 12: drawtwoUno; 13: wildUno; 14: drawfourUno
         elif self.rank == 10:
             return(str(self.color) + ' Skip')
         elif self.rank == 11:
@@ -125,7 +126,10 @@ class UnoPile:
         '''UnoPile(deck) -> UnoPile
         creates a new pile by drawing a card from the deck'''
         card = deck.deal_card()
+        while card.color == "none":
+            card = deck.deal_card()
         #... initialize the pile list by dealing one card from the deck
+        #... if the initial top is a wild card, deal another one from the deck
         self.pile = [card]
  
     def __str__(self):
@@ -235,7 +239,9 @@ class UnoPlayer:
         # get a list of cards that can be played
         topcard = pile.top_card()
         matches = [card for card in self.hand if card.is_match(topcard)]
-        if len(matches) > 0:  # can play
+        
+        #... can play
+        if len(matches) > 0:
             for index in range(len(matches)):
                 # print the playable cards with their number
                 print(str(index + 1) + ": " + str(matches[index]))
@@ -247,23 +253,170 @@ class UnoPlayer:
                     choice = int(choicestr)
             # play the chosen card from hand, add it to the pile
             self.play_card(matches[choice - 1], pile)
-        else:  # can't play
+            
+        #... can't play
+        else:
             print("You can't play, so you have to draw.")
             input("Press enter to draw.")
+            
             # check if deck is empty -- if so, reset it
             if deck.is_empty():
                 deck.reset_deck(pile)
+            
             # draw a new card from the deck
             newcard = self.draw_card(deck)
             print("You drew: "+str(newcard))
             if newcard.is_match(topcard): # can be played
                 print("Good -- you can play that!")
                 self.play_card(newcard,pile)
-            else:   # still can't play
+            
+            #... still can't play   
+            else:
                 print("Sorry, you still can't play.")
+            
             input("Press enter to continue.")
- 
-def play_uno(numPlayers):
+
+class UnoComputer(UnoPlayer):
+    '''represents a computer player of Uno
+    attributes:
+      name: a string with the player's name
+      hand: a list of UnoCards
+      aiLevel: an int of how smart it is. It has three levels'''
+    
+    def __init__(self, name, deck, aiLevel):
+        UnoPlayer.__init__(self, name, deck)
+        self.aiLevel = aiLevel
+    
+    def take_turn(self, deck, pile):
+        '''UnoComputer.take_turn(deck, pile) -> None
+        takes the Computer's turn in the game
+          deck is an UnoDeck representing the current deck
+          pile is an UnoPile representing the discard pile'''
+        
+        # print player info
+        print(self.name + ", it's your turn.")
+        print(pile)
+        print("Your hand: ")
+        print(self.get_hand())
+        # get a list of cards that can be played
+        topcard = pile.top_card()
+        matches = [card for card in self.hand if card.is_match(topcard)]
+        
+        #... can play
+        if len(matches) > 0:
+            for index in range(len(matches)):
+                # print the playable cards with their number
+                print(str(index + 1) + ": " + str(matches[index]))
+                
+            # computer's choice of which card to play
+            if self.aiLevel == "First Choice mode":
+                choice = 1
+            elif self.aiLevel == "Action mode":
+                #... find the action card, if more than 1 action card, choose the first
+                for card in matches:
+                    if card.action != "none":
+                        choice = matches.index(card)
+                    else:
+                        choice = random.randrange(1, len(matches) + 1)
+            elif self.aiLevel == "Random mode":
+                choice = random.randrange(1, len(matches) + 1)
+                
+            # print([card.action for card in matches])
+            
+            # play the chosen card from hand, add it to the pile
+            self.play_card(matches[choice - 1], pile)
+            
+        #... can't play
+        else:
+            print("You can't play, so you have to draw.")
+            #input("Press enter to draw.")
+            
+            # check if deck is empty -- if so, reset it
+            if deck.is_empty():
+                deck.reset_deck(pile)
+            
+            # draw a new card from the deck
+            newcard = self.draw_card(deck)
+            print("You drew: "+str(newcard))
+            if newcard.is_match(topcard): # can be played
+                print("Good -- you can play that!")
+                self.play_card(newcard,pile)
+            
+            #... still can't play   
+            else:
+                print("Sorry, you still can't play.")
+            
+            #input("Press enter to continue.")
+        
+    def play_card(self, card, pile):
+        '''UnoPComputer.play_card(card, pile) -> None
+        plays a card from the player's hand to the pile
+        CAUTION: does not check if the play is legal!'''
+        self.hand.remove(card)
+        pile.add_card(card)
+        if card.color == "none":
+            #... computer's choice to pick color for the wild card
+            icolor = ['red', 'blue', 'green', 'yellow']
+            for index in range(4):
+                # print the color to be assigned to the wild card
+                print(str(index + 1) + ": " + str(icolor[index]))
+            # get player's choice of which color to assign
+            if self.aiLevel == "First Choice mode":
+                choice = 1
+            elif self.aiLevel == "Action mode":
+                choice = random.randrange(1, len(icolor) + 1)
+            elif self.aiLevel == "Random mode":
+                choice = random.randrange(1, len(icolor) + 1)
+            # assign the chosen color to the wild card
+            card.color = icolor[choice - 1]
+        print(pile)
+    
+#... set up the game to include computer players and/or human players
+def set_up_game(deck):
+    '''set_up_game() -> (list, list)
+    returns a list of players' names and a list
+    of whether the player is a computer'''
+    
+    numPlayers = ''
+    
+    while not numPlayers.isdigit():
+        numPlayers = input("How many people are playing UNO? ")
+    numPlayers = int(numPlayers)
+
+    # initialize list of players
+    playerList = []
+    
+    # get player data
+    for n in range(numPlayers):
+        computerPlayer = ''
+        while not (computerPlayer == 'y' or computerPlayer == 'n'):
+            computerPlayer = input("Player " + str(n + 1) + ": Is this player a computer (y/n): ")
+        isComputer = (computerPlayer == 'y')
+        if isComputer:
+            #... get the name for the computer player
+            name = input("Enter the name of computer: ")
+            computername = 'Computer' + name
+            #... pick a level for the computer player
+            ilevel = ['First Choice mode', 'Action mode', 'Random mode']
+            for index in range(len(ilevel)):
+                # print the color to be assigned to the wild card
+                print(str(index + 1) + ": " + str(ilevel[index]))
+            #... set up the AI level for the computer player
+            choice = 0
+            while choice < 1 or choice > len(ilevel):
+                choicestr = input("What AI level is this computer? ")
+                if choicestr.isdigit():
+                    choice = int(choicestr)
+            # assign the chosen AI level to the computer
+            playerList.append(UnoComputer(computername, deck, ilevel[choice - 1]))
+            
+        else:
+            name = input("Enter your name: ")
+            playerList.append(UnoPlayer(name, deck))
+    
+    return playerList
+
+def play_uno():
     '''play_uno(numPlayers) -> None
     plays a game of Uno with numPlayers'''
     
@@ -271,16 +424,17 @@ def play_uno(numPlayers):
     deck = UnoDeck()
     pile = UnoPile(deck)
     
-    # set up the players
-    playerList = []
-    for n in range(numPlayers):
-        # get each player's name, then create an UnoPlayer
-        name = input('Player #' + str(n + 1) + ', enter your name: ')
-        playerList.append(UnoPlayer(name,deck))
-        
+    # set up the players, get players' names and types
+    playerList = set_up_game(deck)
+    #... number of players
+    numPlayers = len(playerList)
+  
     # randomly assign who goes first
     currentPlayerNum = random.randrange(numPlayers)
     
+    #... print to verify
+    #print([player.name for player in playerList])
+
     # play the game
     while True:
         
@@ -293,22 +447,31 @@ def play_uno(numPlayers):
         #... check action card
         action = pile.check_action()
         
+        #... check if the player is a computer player
+        if "Computer" in playerList[currentPlayerNum].name:
+            iscomputer = True
+        else:
+            iscomputer = False
+    
+        #... action card: skip
         if action == "skip":
             player = playerList[currentPlayerNum]
             print(player.name + ", it's your turn.")
             print("Sorry, your turn was skipped! Better luck next time!")
-            input("Press enter to continue.")
+            if not iscomputer:
+                input("Press enter to continue.")
             #... the action is only applied once
             pile.remove_action()
             #... go to the next player
             currentPlayerNum = (currentPlayerNum + 1) % numPlayers
 
+        #... action card:reverse
         elif action == "reverse":
             #... return to the player who has just played before reverse
             justPlayerNum = (currentPlayerNum + numPlayers - 1) % numPlayers
             justPlayer = playerList[justPlayerNum]
             #... A print out message to tell the "reverse"
-            print(str(justPlayer.name) + " has just played a reverse card so the playing order has to be reversed.")
+            print("The reverse card has been played so the playing order has to be reversed.")
             #... reverse the player list
             playerList.reverse()
             #... this is a print out to test if the player list has been reversed successfully
@@ -319,8 +482,14 @@ def play_uno(numPlayers):
             listInd = list(range(numPlayers))
             listPlayername = [player.name for player in playerList]
             playerDict = dict(zip(listPlayername, listInd))
+            
             #... reset current player after reverse
             currentPlayerNum = (playerDict[justPlayer.name] + 1) % numPlayers
+            if "Computer" in playerList[currentPlayerNum].name:
+                iscomputer = True
+            else:
+                iscomputer = False
+                
             # take a turn
             playerList[currentPlayerNum].take_turn(deck, pile)
             # check for a winner
@@ -331,12 +500,14 @@ def play_uno(numPlayers):
             # go to the next player
             currentPlayerNum = (currentPlayerNum + 1) % numPlayers
         
+        #... action card: drawtwo
         elif action == "drawtwo":
             #... check the current player
             player = playerList[currentPlayerNum]
             print(player.name + ", it's your turn.")
             print("Sorry, you have to draw two cards and you can't play because a DrawTwo card has been played.")
-            input("Press enter to continue.")
+            if not iscomputer:
+                input("Press enter to continue.")
             #... draw two cards
             playerList[currentPlayerNum].draw_card(deck)
             playerList[currentPlayerNum].draw_card(deck)
@@ -344,13 +515,15 @@ def play_uno(numPlayers):
             pile.remove_action()
             #... go to the next player
             currentPlayerNum = (currentPlayerNum + 1) % numPlayers
-            
+        
+        #... action card: drawfour
         elif action == "drawfour":
             #... check the current player
             player = playerList[currentPlayerNum]
             print(player.name + ", it's your turn.")
             print("Sorry, you have to draw four cards and you can't play because a Wild DrawFour card has been played.")
-            input("Press enter to continue.")
+            if not iscomputer:
+                input("Press enter to continue.")
             #... draw four cards
             playerList[currentPlayerNum].draw_card(deck)
             playerList[currentPlayerNum].draw_card(deck)
@@ -371,7 +544,6 @@ def play_uno(numPlayers):
                 break
             # go to the next player
             currentPlayerNum = (currentPlayerNum + 1) % numPlayers
-
-#... start to play
-numPlayers = int(input("How many people are playing UNO? "))
-play_uno(numPlayers)
+    
+#... call to play
+play_uno()
