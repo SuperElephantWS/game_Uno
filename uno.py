@@ -5,7 +5,6 @@ Created on Tue Jul 16 20:37:38 2024
 
 @author: Watson
 """
-
 import random
  
 class UnoCard:
@@ -20,30 +19,45 @@ class UnoCard:
         self.rank = rank
         self.color = color
         self.action = action
-        #... 10: skipUno; 11: reverseUno; 12: drawtwoUno
+        #... 10: skipUno; 11: reverseUno; 12: drawtwoUno; 13: wildUno; 14: drawfourUno
         if self.rank == 10:
             self.action = "skip"
         elif self.rank == 11:
             self.action = "reverse"
         elif self.rank == 12:
             self.action = "drawtwo"
- 
+        elif self.rank == 13:
+            self.action = "wild"
+        elif self.rank == 14:
+             self.action = "drawfour"
+             
     def __str__(self):
         '''str(Unocard) -> str'''
         if self.rank < 10:
             return(str(self.color) + ' ' + str(self.rank))
-        #... 10: skipUno; 11: reverseUno; 12: drawtwoUno
+        #... 10: skipUno; 11: reverseUno; 12: drawtwoUno; 13: wildUno; 14: drawfourUn
         elif self.rank == 10:
             return(str(self.color) + ' Skip')
         elif self.rank == 11:
             return(str(self.color) + ' Reverse')
         elif self.rank == 12:
             return(str(self.color) + ' DrawTwo')
+        elif self.rank == 13:
+            return(str(self.color) + ' Wild')
+        elif self.rank == 14:
+            return(str(self.color) + ' Wild DrawFour')
         
     def is_match(self, other):
         '''UnoCard.is_match(UnoCard) -> boolean
         returns True if the cards match in rank or color, False if not'''
-        return (self.color == other.color) or (self.rank == other.rank)
+        ismatch = False
+        #... match of normal cards
+        if self.color == other.color or self.rank == other.rank:
+            ismatch = True
+        #... wild cards
+        if self.color == "none":
+            ismatch = True
+        return ismatch
  
 class UnoDeck:
     '''represents a deck of Uno cards
@@ -55,13 +69,26 @@ class UnoDeck:
         creates a new full Uno deck'''
         self.deck = []
         for color in ['red', 'blue', 'green', 'yellow']:
-            self.deck.append(UnoCard(0, color))  # one 0 of each color
+            self.deck.append(UnoCard(0, color))  # one 0 of each color = 4
             for i in range(2):
-                #... two of each of 1-9 of each color
+                #... two of each of 1-9 of each color = 18 * 4 = 72
                 #... two of each action card of each color, denoted as
-                #... 10: skipUno; 11: reverseUno; 12: drawtwoUno
+                #... 10: skipUno; 11: reverseUno; 12: drawtwoUno = 3 * 2 * 4 = 24
                 for n in range(1, 13):
                     self.deck.append(UnoCard(n, color))
+        #... add four wild card
+        color = 'none'
+        for n in range(4):
+            #... 20: wild card
+            nrank = 13
+            self.deck.append(UnoCard(nrank, color))
+        #... add four wild drawfour
+        for n in range(4):
+            #... 20: wild card
+            nrank = 14
+            self.deck.append(UnoCard(nrank, color))
+        #... check total number of cards
+        #print("total cards = ", len(self.deck))
         random.shuffle(self.deck)  # shuffle the deck
  
     def __str__(self):
@@ -71,6 +98,8 @@ class UnoDeck:
     def is_empty(self):
         '''UnoDeck.is_empty() -> boolean
         returns True if the deck is empty, False otherwise'''
+        #... print a message to tell when the deck is empty.
+        #print("The deck is empty now. Cards in the pile are taken back to deck.")
         return len(self.deck) == 0
  
     def deal_card(self):
@@ -112,6 +141,13 @@ class UnoPile:
         '''UnoPile.add_card(card) -> None
         adds the card to the top of the pile'''
         self.pile.append(card)
+        
+    def check_action(self):
+        return self.top_card().action
+    
+    def remove_action(self):
+        self.top_card().action = "none"
+        return self.top_card().action
  
     def reset_pile(self):
         '''UnoPile.reset_pile() -> list
@@ -169,14 +205,21 @@ class UnoPlayer:
         CAUTION: does not check if the play is legal!'''
         self.hand.remove(card)
         pile.add_card(card)
+        if card.color == "none":
+            #... pick a color for the wild card
+            icolor = ['red', 'blue', 'green', 'yellow']
+            for index in range(4):
+                # print the color to be assigned to the wild card
+                print(str(index + 1) + ": " + str(icolor[index]))
+            # get player's choice of which color to assign
+            choice = 0
+            while choice < 1 or choice > len(icolor):
+                choicestr = input("What color do you want for the wild card? ")
+                if choicestr.isdigit():
+                    choice = int(choicestr)
+            # assign the chosen color to the wild card
+            card.color = icolor[choice - 1]
         print(pile)
-        
-    def check_action(self, pile):
-        return pile.top_card().action
-    
-    def remove_action(self,pile):
-        pile.top_card().action = "none"
-        return pile.top_card().action
 
     def take_turn(self, deck, pile):
         '''UnoPlayer.take_turn(deck, pile) -> None
@@ -248,7 +291,7 @@ def play_uno(numPlayers):
         print('-------')
 
         #... check action card
-        action = playerList[currentPlayerNum].check_action(pile)
+        action = pile.check_action()
         
         if action == "skip":
             player = playerList[currentPlayerNum]
@@ -256,7 +299,7 @@ def play_uno(numPlayers):
             print("Sorry, your turn was skipped! Better luck next time!")
             input("Press enter to continue.")
             #... the action is only applied once
-            playerList[currentPlayerNum].remove_action(pile)
+            pile.remove_action()
             #... go to the next player
             currentPlayerNum = (currentPlayerNum + 1) % numPlayers
 
@@ -271,7 +314,7 @@ def play_uno(numPlayers):
             #... this is a print out to test if the player list has been reversed successfully
             #print("play list after reverse:", [player.name for player in playerList])
             #... the action is only applied once
-            playerList[currentPlayerNum].remove_action(pile)
+            pile.remove_action()
             #... make a dictionary to map the player name with the list index after reverse
             listInd = list(range(numPlayers))
             listPlayername = [player.name for player in playerList]
@@ -298,7 +341,23 @@ def play_uno(numPlayers):
             playerList[currentPlayerNum].draw_card(deck)
             playerList[currentPlayerNum].draw_card(deck)
             #... the action is only applied once
-            playerList[currentPlayerNum].remove_action(pile)
+            pile.remove_action()
+            #... go to the next player
+            currentPlayerNum = (currentPlayerNum + 1) % numPlayers
+            
+        elif action == "drawfour":
+            #... check the current player
+            player = playerList[currentPlayerNum]
+            print(player.name + ", it's your turn.")
+            print("Sorry, you have to draw four cards and you can't play because a Wild DrawFour card has been played.")
+            input("Press enter to continue.")
+            #... draw four cards
+            playerList[currentPlayerNum].draw_card(deck)
+            playerList[currentPlayerNum].draw_card(deck)
+            playerList[currentPlayerNum].draw_card(deck)
+            playerList[currentPlayerNum].draw_card(deck)
+            #... the action is only applied once
+            pile.remove_action()
             #... go to the next player
             currentPlayerNum = (currentPlayerNum + 1) % numPlayers
             
