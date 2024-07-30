@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jul 16 20:37:38 2024
@@ -178,7 +178,6 @@ class UnoPlayer:
         pile.top_card().action = "none"
         return pile.top_card().action
 
- 
     def take_turn(self, deck, pile):
         '''UnoPlayer.take_turn(deck, pile) -> None
         takes the player's turn in the game
@@ -252,6 +251,7 @@ def play_uno(numPlayers):
         action = playerList[currentPlayerNum].check_action(pile)
         
         if action == "skip":
+            player = playerList[currentPlayerNum]
             print(player.name + ", it's your turn.")
             print("Sorry, your turn was skipped! Better luck next time!")
             input("Press enter to continue.")
@@ -259,22 +259,60 @@ def play_uno(numPlayers):
             playerList[currentPlayerNum].remove_action(pile)
             #... go to the next player
             currentPlayerNum = (currentPlayerNum + 1) % numPlayers
-        
-       # elif action == "reverse":
-       #     playerList.reverse()
-       #     currentPlayerNum = (currentPlayerNum + 1) % numPlayers
-            
-        else:
+
+        elif action == "reverse":
+            #... return to the player who has just played before reverse
+            justPlayerNum = (currentPlayerNum + numPlayers - 1) % numPlayers
+            justPlayer = playerList[justPlayerNum]
+            #... A print out message to tell the "reverse"
+            print(str(justPlayer.name) + " has just played a reverse card so the playing order has to be reversed.")
+            #... reverse the player list
+            playerList.reverse()
+            #... this is a print out to test if the player list has been reversed successfully
+            #print("play list after reverse:", [player.name for player in playerList])
+            #... the action is only applied once
+            playerList[currentPlayerNum].remove_action(pile)
+            #... make a dictionary to map the player name with the list index after reverse
+            listInd = list(range(numPlayers))
+            listPlayername = [player.name for player in playerList]
+            playerDict = dict(zip(listPlayername, listInd))
+            #... reset current player after reverse
+            currentPlayerNum = (playerDict[justPlayer.name] + 1) % numPlayers
+            # take a turn
             playerList[currentPlayerNum].take_turn(deck, pile)
             # check for a winner
             if playerList[currentPlayerNum].has_won():
                 print(playerList[currentPlayerNum].get_name() + " wins!")
                 print("Thanks for playing!")
                 break
-            #... go to the next player
+            # go to the next player
             currentPlayerNum = (currentPlayerNum + 1) % numPlayers
         
-        
-        
+        elif action == "drawtwo":
+            #... check the current player
+            player = playerList[currentPlayerNum]
+            print(player.name + ", it's your turn.")
+            print("Sorry, you have to draw two cards and you can't play because a DrawTwo card has been played.")
+            input("Press enter to continue.")
+            #... draw two cards
+            playerList[currentPlayerNum].draw_card(deck)
+            playerList[currentPlayerNum].draw_card(deck)
+            #... the action is only applied once
+            playerList[currentPlayerNum].remove_action(pile)
+            #... go to the next player
+            currentPlayerNum = (currentPlayerNum + 1) % numPlayers
+            
+        else:
+            # take a turn
+            playerList[currentPlayerNum].take_turn(deck, pile)
+            # check for a winner
+            if playerList[currentPlayerNum].has_won():
+                print(playerList[currentPlayerNum].get_name() + " wins!")
+                print("Thanks for playing!")
+                break
+            # go to the next player
+            currentPlayerNum = (currentPlayerNum + 1) % numPlayers
 
-play_uno(3)
+#... start to play
+numPlayers = int(input("How many people are playing UNO? "))
+play_uno(numPlayers)
