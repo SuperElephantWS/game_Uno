@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 Created on Tue Jul 16 20:37:38 2024
-
 @author: Watson
 """
 
@@ -370,7 +370,7 @@ class UnoComputer(UnoPlayer):
             # assign the chosen color to the wild card
             card.color = icolor[choice - 1]
         print(pile)
-    
+
 #... set up the game to include computer players and/or human players
 def set_up_game(deck):
     '''set_up_game() -> (list, list)
@@ -544,6 +544,3 @@ def play_uno():
                 break
             # go to the next player
             currentPlayerNum = (currentPlayerNum + 1) % numPlayers
-    
-#... call to play
-play_uno()
